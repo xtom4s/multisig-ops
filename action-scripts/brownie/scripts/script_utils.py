@@ -128,7 +128,6 @@ def format_into_report(file: dict, transactions: list[dict]) -> str:
 
     file_report += f"COMMIT: `{os.getenv('COMMIT_SHA', 'N/A')}`\n"
     result = extract_chain_id_and_address_from_filename(file_name)
-    print(result)
     if result:
         (chain_id, address) = result
         chain_name = AddrBook.chain_names_by_id[chain_id]
@@ -176,7 +175,7 @@ def get_token_symbol(token_address) -> Optional[str]:
     try:
         return Contract.from_abi("Token", token_address, json.load(open("abis/ERC20.json"))).symbol()
     except Exception as err:
-        print(err)
+        print(f"Token lookup error: {err}")
         return
 
 def prettify_tokens_list(token_addresses:list[str]) -> list[str]:
@@ -190,7 +189,7 @@ def prettify_tokens_list(token_addresses:list[str]) -> list[str]:
     return results
 
 
-def prettify_contract_inputs_values(chain: str , contracts_inputs_values: dict) -> dict:
+def prettify_contract_inputs_values(chain: str, contracts_inputs_values: dict) -> dict:
     """
     Accepts contractInputsValues dict with key of input_name and value of input_value
     Tries to look for values to add human readability to and does so when possible

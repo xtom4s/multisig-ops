@@ -1,0 +1,4 @@
+{
+  "md_prefix": "# This is an Optimistic Approval vote\n\n  All gauges that do not receive at least 200,000 veBAL in veto signaling will be granted a gauge.  Please select all gauges that you **do not** think should be granted automatic approval.\n\n ### This weeks choices with links to available Forum Posts\n\n"
+  "option_prefix"
+}

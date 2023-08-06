@@ -29,6 +29,7 @@ STYLE_SINGLE_RECIPIENT = "Single Recipient"
 STYLE_CHILD_CHAIN_STREAMER = "ChildChainStreamer"
 STYLE_L0 = "L0 sidechain"
 CHAIN_MAINNET = "mainnet"
+DEFAULT_SNAPSHOT_CHOICE_PREFIX = "BG###: "
 
 # Update this if needed by pulling gauge types from gauge adder:
 # https://etherscan.io/address/0x5DbAd78818D4c8958EfF2d5b95b28385A22113Cd#readContract
@@ -52,7 +53,7 @@ SELECTORS_MAPPING = {
 }
 
 today = datetime.today().strftime('%Y-%m-%d')
-
+weekstring = datetime.today().strftime('%Y-W%V')
 def _extract_pool(
         chain: str, gauge: Contract, gauge_selectors: dict
 ) -> tuple[str, str, str, str, str, str, str, list[str], list[str]]:
@@ -149,9 +150,9 @@ def _parse_added_transaction(transaction: dict, **kwargs) -> Optional[dict]:
         "function": f"{to_string}/{command}",
         "chain": chain.replace("-main", "") if chain else "mainnet",
         "pool_id_and_address": f"{pool_id} \npool_address: {pool_address}",
-        "symbol_and_info": f"{pool_symbol} \nfee: {fee}, a-factor: {a_factor}",
+        "symbol_and_info": f"{pool_symbol}\nfee: {fee}, a-factor: {a_factor}",
         "gauge_address_and_info": f"{gauge_address} \n Style: {style}, cap: {gauge_cap}",
-        "tokens": json.dumps(tokens, indent=2).strip("[\n]"),
+        "tokens": json.dumps(tokens, indent=2).strip("[\n ]"),
         "rate_providers": json.dumps(rate_providers, indent=2).strip("[\n]"),
         "bip": kwargs.get('bip_number', 'N/A'),
         "tx_index": kwargs.get('tx_index', 'N/A')
@@ -423,12 +424,42 @@ def handler(files: list[dict], handler_func: Callable) -> dict[str, dict]:
     return reports
 
 
+def generate_snapshot_options(reports_by_file: dict) -> {list[str], str}:
+    # Load snapshot config if it exists
+    try:
+        with open("snapshot_config.json", "r") as f:
+            snapshot_config = json.load(f)
+    except Exception:
+            snapshot_config = {}
+
+    prefix = snapshot_config.get("option_prefix", DEFAULT_SNAPSHOT_CHOICE_PREFIX)
+
+    snapshot_strings = []
+    snapshot_mds = snapshot_config.get("md_prefix", "")
+    for file_name, report in reports_by_file.items():
+        try:
+            symbol = report["report_data"]["symbol_and_info"].split("\n")[0] # symbol is first line
+        except Exception:
+            print(f"Warning: No symbol found to add in filename to snapshot list")
+            continue
+
+        snapshot_string = prefix + symbol[:32-len(prefix)]
+        snapshot_strings.append(snapshot_string)
+        forum_link = report.get("forum_link")
+        if forum_link:
+            snapshot_mds += f"[{snapshot_string}]({forum_link})\n"
+        else:
+            snapshot_mds += snapshot_string + "\n"
+    return snapshot_strings, snapshot_mds
+
+
 def main() -> None:
     files = get_changed_files()
     print(f"Found {len(files)} files with added/removed gauges")
     # TODO: Add here more handlers for other types of transactions
     all_reports = []
-    all_reports.append(handler(files, _parse_added_transaction))
+    added_gauge_txs = handler(files, _parse_added_transaction)
+    all_reports.append(added_gauge_txs)
     all_reports.append(handler(files, _parse_removed_transaction))
     all_reports.append(handler(files, _parse_transfer))
     all_reports.append(handler(files, _parse_permissions))
@@ -445,6 +476,11 @@ def main() -> None:
         filename = filename.replace(".json", ".report.txt")
         with open(f"../../{filename}", "w") as f:
             f.write(report)
+    ### Generate snapshot options
+    print(json.dumps(added_gauge_txs, indent=2))
+    snapshot_strings, snapshot_md = generate_snapshot_options(added_gauge_txs)
+    with open(f"../../BIPs/00snapshot/{weekstring}-snapshot-info.txt", "w") as f:
+        f.write(snapshot_md + "\n\n\n\n\n" + json.dumps(snapshot_strings, indent=2))
 
 
 if __name__ == "__main__":
