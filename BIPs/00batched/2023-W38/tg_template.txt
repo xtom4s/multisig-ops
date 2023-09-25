@@ -17,4 +17,4 @@ BIP-103: Karpatkey Monthly paymnet - Approved long ago
 Also @fernando and other signers.  The detailed BIP breakdown is quite time consuming to put together, we can automate eventually.  I can keep doing it but is someone using it...  You can pretty easily understand what is going on from the report and easily find BIPs you have questions about.  Say something if it is important.
 
 
-
+Report: https://github.com/BalancerMaxis/multisig-ops/blob/main/BIPs/00batched/2023-W38/combined-report.md
